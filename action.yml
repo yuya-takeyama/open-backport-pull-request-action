@@ -50,3 +50,4 @@ runs:
         fi
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
+      shell: bash
