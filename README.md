@@ -18,6 +18,7 @@ jobs:
   backport:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - uses: yuya-takeyama/open-backport-pull-request-action@v0.1.0
 ```
 
