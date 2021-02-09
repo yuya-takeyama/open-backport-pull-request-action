@@ -1,0 +1,52 @@
+name: 'Open Backport Pull Request'
+description: 'Open a backport Pull Request from a branch'
+inputs:
+  github-token:
+    description: 'Personal Access Token to run gh CLI'
+    default: ${{ github.token }}
+  head-ref:
+    description: 'HEAD ref to create a Pull Request'
+    default: ${{ github.ref }}
+outputs:
+  url:
+    description: "URL of the opened Pull Request"
+    value: ${{ steps.open-pull-request.outputs.url }}
+runs:
+  using: 'composite'
+  steps:
+    - id: open-pull-request
+      run: |
+        head_ref="${{ inputs.head-ref }}"
+        branch="${head_ref##refs/heads/}"
+        diff="$(gh pr diff "$branch" --color always)"
+
+        if [ "$diff" == "" ]; then
+          echo "::warning::No differences"
+          exit 0
+        fi
+
+        echo "::group::Diff"
+        echo "$diff"
+        echo "::endgroup::"
+
+        url="$(gh pr create \
+          --title "Backport $branch into develop" \
+          --body 'This is a backport PR' \
+          --label backport \
+          2> error.log || true)"
+
+        if [[ "$url" == "https://"* ]]; then
+          echo "::set-output name=url::$url"
+          echo "::warning::Opened a Pull Request: $url"
+          exit
+        fi
+
+        error="$(cat error.log)"
+        if [[ "$error" == *" already exists:"* ]]; then
+          echo "::warning::Pull Request already exists: $(grep https:// error.log)"
+        else
+          echo "::error::Unkonwn error: $error"
+          exit 1
+        fi
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
